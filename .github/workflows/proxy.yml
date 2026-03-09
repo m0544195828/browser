@@ -1,0 +1,40 @@
+name: Proxy Fetch
+
+on:
+  workflow_dispatch:
+    inputs:
+      gist_id:
+        description: 'Gist ID'
+        required: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get URL from Gist
+        id: get_url
+        run: |
+          URL=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/gists/${{ inputs.gist_id }} | \
+            python3 -c "import sys,json; print(json.load(sys.stdin)['files']['request.txt']['content'])")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Fetch the page
+        run: |
+          curl -s -L \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            "${{ steps.get_url.outputs.url }}" > result.html
+
+      - name: Upload result to Gist
+        run: |
+          CONTENT=$(python3 -c "
+          import json
+          with open('result.html','r',errors='ignore') as f:
+            content = f.read()
+          print(json.dumps(content))
+          ")
+          curl -s -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"files\":{\"result.html\":{\"content\":$CONTENT}}}" \
+            https://api.github.com/gists/${{ inputs.gist_id }}
