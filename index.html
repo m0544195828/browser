@@ -10,26 +10,31 @@
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:Rubik,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;}
     .toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;}
-    .dots{display:flex;gap:4px;flex-shrink:0;}
+    .dots{display:flex;gap:4px;}
     .dot{width:9px;height:9px;border-radius:50%;}
     .dr{background:#ff5f57;}.dy{background:#febc2e;}.dg{background:#28c840;}
-    .navbtn{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;width:24px;height:24px;font-size:0.9rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .navbtn{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;width:24px;height:24px;font-size:0.9rem;display:flex;align-items:center;justify-content:center;}
     .navbtn:hover{border-color:var(--accent2);color:var(--accent2);}
     .ubar{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:monospace;font-size:0.8rem;color:var(--text);outline:none;direction:ltr;}
     .ubar:focus{border-color:rgba(108,99,255,0.5);}
     .ubar::placeholder{font-family:Rubik,sans-serif;color:var(--muted);}
-    .gobtn{background:linear-gradient(135deg,#6c63ff,#4f46e5);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:Rubik,sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;flex-shrink:0;}
+    .gobtn{background:linear-gradient(135deg,#6c63ff,#4f46e5);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-family:Rubik,sans-serif;font-size:0.82rem;font-weight:700;cursor:pointer;}
     .gobtn:disabled{opacity:0.4;cursor:not-allowed;}
     .sb{display:none;padding:5px 10px;font-size:0.76rem;flex-shrink:0;align-items:center;gap:6px;}
     .sb.show{display:flex;}
     .sb.loading{color:var(--accent2);background:rgba(167,139,250,0.05);}
     .sb.error{color:var(--red);background:rgba(255,77,77,0.05);}
     .sb.ok{color:var(--green);background:rgba(82,183,136,0.05);}
-    .spin{width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
+    .spin{width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg);}}
     .qbar{display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;}
     .ql{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 9px;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:Rubik,sans-serif;}
     .ql:hover{border-color:var(--accent2);color:var(--accent2);}
+    .setup{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:14px;padding:20px;}
+    .setup h2{font-size:1.1rem;font-weight:700;color:var(--accent2);}
+    .setup p{font-size:0.8rem;color:var(--muted);text-align:center;max-width:300px;line-height:1.6;}
+    .setup input{width:100%;max-width:340px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-family:monospace;font-size:0.82rem;color:var(--text);outline:none;direction:ltr;}
+    .setup button{background:linear-gradient(135deg,#6c63ff,#4f46e5);color:#fff;border:none;border-radius:7px;padding:9px 24px;font-family:Rubik,sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;width:100%;max-width:340px;}
     #content{flex:1;overflow:auto;background:#fff;position:relative;}
     #content iframe{width:100%;height:100%;border:none;display:block;position:absolute;inset:0;}
     .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);background:#0d0d1a;}
@@ -38,7 +43,7 @@
 </head>
 <body>
 
-<div class="toolbar">
+<div class="toolbar" id="toolbar" style="display:none;">
   <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
   <button class="navbtn" onclick="goBack()">&#8249;</button>
   <button class="navbtn" onclick="goFwd()">&#8250;</button>
@@ -49,92 +54,131 @@
 
 <div class="sb" id="sb"><div class="spin"></div><span id="sbtext"></span></div>
 
-<div class="qbar">
+<div class="qbar" id="qbar" style="display:none;">
   <button class="ql" onclick="nav('https://wikipedia.org')">Wikipedia</button>
   <button class="ql" onclick="nav('https://news.ycombinator.com')">Hacker News</button>
   <button class="ql" onclick="nav('https://github.com')">GitHub</button>
   <button class="ql" onclick="nav('https://ynet.co.il')">Ynet</button>
   <button class="ql" onclick="nav('https://walla.co.il')">Walla</button>
-  <button class="ql" onclick="nav('https://google.com')">Google</button>
 </div>
 
-<div id="content">
-  <div class="empty">
+<div class="setup" id="setup">
+  <h2>&#128274; הכנס GitHub Token</h2>
+  <p>צור Personal Access Token ב-GitHub עם הרשאות <strong>gist</strong> ו-<strong>workflow</strong> והכנס אותו כאן.<br/>הטוקן נשמר רק על המחשב שלך.</p>
+  <input id="tokenInput" type="password" placeholder="ghp_..."/>
+  <button onclick="saveToken()">התחל לגלוש &#8594;</button>
+</div>
+
+<div id="content" style="display:none;">
+  <div class="empty" id="empty">
     <div class="eicon">&#127759;</div>
     <div>הכנס כתובת אתר</div>
-    <div style="font-size:0.73rem;opacity:0.4;margin-top:2px;">דרך allorigins.win</div>
+    <div style="font-size:0.73rem;opacity:0.4;margin-top:2px;">הכל עובר דרך GitHub</div>
   </div>
 </div>
 
 <script>
-  // שירות פרוקסי חינמי שרץ על Cloudflare — דומיין קבוע ומוכר
-  var PROXY = 'https://api.allorigins.win/get?url=';
+  var TOKEN = localStorage.getItem('gh_token') || '';
+  var GIST_ID = localStorage.getItem('gh_gist_id') || '';
+  var OWNER = 'm0544195828';
+  var REPO = 'browser';
   var hist = [], cur = -1;
+
+  if (TOKEN) showBrowser();
+
+  function saveToken() {
+    var t = document.getElementById('tokenInput').value.trim();
+    if (!t) return;
+    TOKEN = t;
+    localStorage.setItem('gh_token', t);
+    showBrowser();
+  }
+
+  function showBrowser() {
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('toolbar').style.display = 'flex';
+    document.getElementById('qbar').style.display = 'flex';
+    document.getElementById('content').style.display = 'block';
+  }
 
   function go() {
     var url = document.getElementById('ubar').value.trim();
     if (!url) return;
     if (!url.startsWith('http')) url = 'https://' + url;
-    pushHist(url);
-    load(url);
+    pushHist(url); load(url);
   }
 
-  function nav(url) {
-    document.getElementById('ubar').value = url;
-    pushHist(url);
-    load(url);
-  }
+  function nav(url) { document.getElementById('ubar').value = url; pushHist(url); load(url); }
+  function pushHist(url) { hist = hist.slice(0, cur+1); hist.push(url); cur = hist.length-1; }
+  function goBack() { if (cur>0) { cur--; var u=hist[cur]; document.getElementById('ubar').value=u; load(u); } }
+  function goFwd()  { if (cur<hist.length-1) { cur++; var u=hist[cur]; document.getElementById('ubar').value=u; load(u); } }
+  function reload() { if (hist[cur]) load(hist[cur]); }
 
-  function pushHist(url) {
-    hist = hist.slice(0, cur + 1);
-    hist.push(url);
-    cur = hist.length - 1;
-  }
-
-  function goBack() {
-    if (cur > 0) { cur--; var u = hist[cur]; document.getElementById('ubar').value = u; load(u); }
-  }
-
-  function goFwd() {
-    if (cur < hist.length - 1) { cur++; var u = hist[cur]; document.getElementById('ubar').value = u; load(u); }
-  }
-
-  function reload() {
-    if (hist[cur]) load(hist[cur]);
-  }
-
-  function load(url) {
-    setStatus('טוען...', 'loading');
+  async function load(url) {
+    setStatus('מפעיל GitHub Action...', 'loading');
     document.getElementById('gobtn').disabled = true;
+    document.getElementById('empty').style.display = 'none';
 
-    fetch(PROXY + encodeURIComponent(url))
-      .then(r => r.json())
-      .then(d => {
-        var html = d.contents;
-        if (!html) throw new Error('לא הוחזר תוכן');
+    try {
+      // שלב 1: צור/עדכן Gist עם ה-URL המבוקש
+      var gistBody = { description:'proxy', public:false, files:{ 'request.txt':{ content: url }, 'result.html':{ content: 'pending' } } };
 
-        // משכתב קישורים יחסיים
-        var base = url.match(/^(https?:\/\/[^\/]+)/)[1];
-        html = html.replace(/(href|src)=["'](?!http|\/\/|#|data:|javascript:|mailto:)([^"']*)['"]/gi, function(m, attr, path) {
-          var abs = path.startsWith('/') ? base + path : url.replace(/[^\/]*$/, '') + path;
-          return attr + '="' + abs + '"';
+      if (!GIST_ID) {
+        var gr = await fetch('https://api.github.com/gists', {
+          method:'POST',
+          headers:{ 'Authorization':'token '+TOKEN, 'Content-Type':'application/json' },
+          body: JSON.stringify(gistBody)
         });
+        var gd = await gr.json();
+        GIST_ID = gd.id;
+        localStorage.setItem('gh_gist_id', GIST_ID);
+      } else {
+        await fetch('https://api.github.com/gists/'+GIST_ID, {
+          method:'PATCH',
+          headers:{ 'Authorization':'token '+TOKEN, 'Content-Type':'application/json' },
+          body: JSON.stringify({ files:{ 'request.txt':{ content:url }, 'result.html':{ content:'pending' } } })
+        });
+      }
 
-        // מוסיף base tag
-        html = html.replace('<head>', '<head><base href="' + url + '">');
+      // שלב 2: הפעל GitHub Action
+      var ar = await fetch('https://api.github.com/repos/'+OWNER+'/'+REPO+'/actions/workflows/proxy.yml/dispatches', {
+        method:'POST',
+        headers:{ 'Authorization':'token '+TOKEN, 'Content-Type':'application/json' },
+        body: JSON.stringify({ ref:'main', inputs:{ gist_id: GIST_ID } })
+      });
+      if (!ar.ok) throw new Error('Action נכשל — בדוק שהטוקן יש לו הרשאת workflow');
 
-        var c = document.getElementById('content');
-        c.innerHTML = '';
-        var f = document.createElement('iframe');
-        f.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups');
-        f.srcdoc = html;
-        f.style = 'width:100%;height:100%;border:none;display:block;position:absolute;inset:0;';
-        c.appendChild(f);
+      // שלב 3: המתן לתוצאה
+      setStatus('GitHub מביא את הדף... (עד 30 שניות)', 'loading');
+      var html = await waitForResult();
 
-        setStatus('&#10003; ' + url, 'ok');
-      })
-      .catch(e => setStatus('שגיאה: ' + e.message, 'error'))
-      .finally(() => document.getElementById('gobtn').disabled = false);
+      // הצג
+      var c = document.getElementById('content');
+      var f = document.createElement('iframe');
+      f.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
+      f.srcdoc = html;
+      f.style = 'width:100%;height:100%;border:none;display:block;position:absolute;inset:0;';
+      c.innerHTML = ''; c.appendChild(f);
+      setStatus('&#10003; ' + url, 'ok');
+
+    } catch(e) {
+      setStatus('שגיאה: ' + e.message, 'error');
+    } finally {
+      document.getElementById('gobtn').disabled = false;
+    }
+  }
+
+  async function waitForResult() {
+    for (var i=0; i<30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      var r = await fetch('https://api.github.com/gists/'+GIST_ID, {
+        headers:{ 'Authorization':'token '+TOKEN }
+      });
+      var d = await r.json();
+      var content = d.files && d.files['result.html'] && d.files['result.html'].content;
+      if (content && content !== 'pending') return content;
+    }
+    throw new Error('פג זמן המתנה');
   }
 
   function setStatus(msg, type) {
@@ -144,7 +188,7 @@
     if (type !== 'loading') setTimeout(() => sb.classList.remove('show'), 3000);
   }
 
-  document.getElementById('ubar').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  document.getElementById('ubar').addEventListener('keydown', e => { if (e.key==='Enter') go(); });
 </script>
 </body>
 </html>
