@@ -1,0 +1,31 @@
+name: Join Meet
+
+on:
+  workflow_dispatch:
+    inputs:
+      meet_url:
+        description: 'קישור Google Meet'
+        required: true
+      nav_url:
+        description: 'אתר לפתוח (אופציונלי)'
+        required: false
+        default: 'https://google.com'
+
+jobs:
+  join:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tell server to join Meet
+        run: |
+          curl -s -X POST https://browser-i4vk.onrender.com/join \
+            -H "Content-Type: application/json" \
+            -d '{"code": "${{ inputs.meet_url }}"}'
+
+      - name: Wait for server to join
+        run: sleep 10
+
+      - name: Navigate to URL
+        run: |
+          curl -s -X POST https://browser-i4vk.onrender.com/navigate \
+            -H "Content-Type: application/json" \
+            -d '{"url": "${{ inputs.nav_url }}"}'
