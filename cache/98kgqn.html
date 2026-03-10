@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Browser</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#07070e;--card:#13131f;--border:#1c1c2e;--accent:#6c63ff;--accent2:#a78bfa;--green:#52b788;--red:#ff4d4d;--text:#eaeaf4;--muted:#4a4a6a;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:Rubik,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;}
+    .toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;}
+    .dots{display:flex;gap:4px;}.dot{width:9px;height:9px;border-radius:50%;}
+    .dr{background:#ff5f57;}.dy{background:#febc2e;}.dg{background:#28c840;}
+    .navbtn{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;width:26px;height:26px;font-size:1rem;display:flex;align-items:center;justify-content:center;}
+    .navbtn:hover{border-color:var(--accent2);color:var(--accent2);}
+    .ubar{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:monospace;font-size:0.82rem;color:var(--text);outline:none;direction:ltr;}
+    .ubar:focus{border-color:rgba(108,99,255,0.5);}
+    .ubar::placeholder{font-family:Rubik,sans-serif;color:var(--muted);}
+    .gobtn{background:linear-gradient(135deg,#6c63ff,#4f46e5);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-family:Rubik,sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;}
+    .gobtn:disabled{opacity:0.4;cursor:not-allowed;}
+    .sb{display:none;padding:5px 10px;font-size:0.76rem;flex-shrink:0;align-items:center;gap:6px;}
+    .sb.show{display:flex;}
+    .sb.loading{color:var(--accent2);background:rgba(167,139,250,0.05);}
+    .sb.error{color:var(--red);background:rgba(255,77,77,0.05);}
+    .sb.ok{color:var(--green);background:rgba(82,183,136,0.05);}
+    .spin{width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .qbar{display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;}
+    .ql{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 9px;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:Rubik,sans-serif;}
+    .ql:hover{border-color:var(--accent2);color:var(--accent2);}
+    #content{flex:1;overflow:hidden;background:#fff;position:relative;}
+    iframe{width:100%;height:100%;border:none;display:block;position:absolute;inset:0;}
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);background:#0d0d1a;}
+    .eicon{font-size:2.8rem;opacity:0.12;}
+  </style>
+</head>
+<body>
+<div class="toolbar">
+  <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
+  <button class="navbtn" onclick="goBack()">&#8249;</button>
+  <button class="navbtn" onclick="goFwd()">&#8250;</button>
+  <button class="navbtn" onclick="reload()">&#8635;</button>
+  <input class="ubar" id="ubar" placeholder="https://example.com"/>
+  <button class="gobtn" id="gobtn" onclick="go()">עבור</button>
+</div>
+<div class="sb" id="sb"><div class="spin"></div><span id="sbtext"></span></div>
+<div class="qbar">
+  <button class="ql" onclick="nav('https://wikipedia.org')">Wikipedia</button>
+  <button class="ql" onclick="nav('https://news.ycombinator.com')">Hacker News</button>
+  <button class="ql" onclick="nav('https://github.com')">GitHub</button>
+  <button class="ql" onclick="nav('https://ynet.co.il')">Ynet</button>
+  <button class="ql" onclick="nav('https://walla.co.il')">Walla</button>
+  <button class="ql" onclick="nav('https://google.com')">Google</button>
+</div>
+<div id="content">
+  <div class="empty" id="empty">
+    <div class="eicon">&#127759;</div>
+    <div>הכנס כתובת אתר</div>
+    <div style="font-size:0.73rem;opacity:0.4;margin-top:2px;">הכל עובר דרך Cloudflare</div>
+  </div>
+</div>
+<script>
+  var hist=[], cur=-1;
+  function go(){
+    var url=document.getElementById('ubar').value.trim();
+    if(!url) return;
+    if(!url.startsWith('http')) url='https://'+url;
+    pushHist(url); load(url);
+  }
+  function nav(url){document.getElementById('ubar').value=url;pushHist(url);load(url);}
+  function pushHist(url){hist=hist.slice(0,cur+1);hist.push(url);cur=hist.length-1;}
+  function goBack(){if(cur>0){cur--;var u=hist[cur];document.getElementById('ubar').value=u;load(u);}}
+  function goFwd(){if(cur<hist.length-1){cur++;var u=hist[cur];document.getElementById('ubar').value=u;load(u);}}
+  function reload(){if(hist[cur])load(hist[cur]);}
+  function load(url){
+    setStatus('טוען...','loading');
+    document.getElementById('gobtn').disabled=true;
+    document.getElementById('empty').style.display='none';
+    var f=document.createElement('iframe');
+    f.src='/p?u='+encodeURIComponent(url);
+    f.style='width:100%;height:100%;border:none;display:block;position:absolute;inset:0;';
+    f.onload=function(){setStatus('&#10003; '+url,'ok');document.getElementById('gobtn').disabled=false;};
+    f.onerror=function(){setStatus('שגיאה בטעינה','error');document.getElementById('gobtn').disabled=false;};
+    var c=document.getElementById('content');
+    c.innerHTML='';c.appendChild(f);
+    window.addEventListener('message',function(e){
+      if(e.data&&e.data.type==='nav'){
+        document.getElementById('ubar').value=e.data.url;
+        pushHist(e.data.url);load(e.data.url);
+      }
+    });
+  }
+  function setStatus(msg,type){
+    var sb=document.getElementById('sb');
+    document.getElementById('sbtext').innerHTML=msg;
+    sb.className='sb show '+type;
+    if(type!=='loading')setTimeout(()=>sb.classList.remove('show'),3000);
+  }
+  document.getElementById('ubar').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+</script>
+</body>
+</html>
