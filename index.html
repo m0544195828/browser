@@ -3,278 +3,156 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Browser</title>
+  <title>Meet Browser</title>
   <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;800&display=swap" rel="stylesheet"/>
   <style>
     :root{--bg:#07070e;--card:#13131f;--border:#1c1c2e;--accent:#6c63ff;--accent2:#a78bfa;--green:#52b788;--red:#ff4d4d;--text:#eaeaf4;--muted:#4a4a6a;}
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:Rubik,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
-    .toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;}
-    .dots{display:flex;gap:4px;}.dot{width:9px;height:9px;border-radius:50%;}
-    .dr{background:#ff5f57;}.dy{background:#febc2e;}.dg{background:#28c840;}
-    .navbtn{background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;width:26px;height:26px;font-size:1rem;display:flex;align-items:center;justify-content:center;}
-    .navbtn:hover{border-color:var(--accent2);color:var(--accent2);}
-    .ubar{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:monospace;font-size:0.82rem;color:var(--text);outline:none;direction:ltr;}
-    .ubar:focus{border-color:rgba(108,99,255,0.5);}
-    .ubar::placeholder{font-family:Rubik,sans-serif;color:var(--muted);}
-    .gobtn{background:linear-gradient(135deg,#6c63ff,#4f46e5);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-family:Rubik,sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;}
-    .gobtn:disabled{opacity:0.4;cursor:not-allowed;}
-    .sb{display:none;padding:5px 10px;font-size:0.76rem;flex-shrink:0;align-items:center;gap:6px;}
-    .sb.show{display:flex;}
-    .sb.loading{color:var(--accent2);background:rgba(167,139,250,0.05);}
-    .sb.error{color:var(--red);background:rgba(255,77,77,0.05);}
-    .sb.ok{color:var(--green);background:rgba(82,183,136,0.05);}
-    .spin{width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;}
+    body{font-family:Rubik,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+    .wrap{width:100%;max-width:480px;display:flex;flex-direction:column;gap:14px;}
+    h1{font-size:2rem;font-weight:800;letter-spacing:-2px;background:linear-gradient(135deg,#fff,var(--accent2),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;margin-bottom:4px;}
+    .sub{color:var(--muted);font-size:0.82rem;text-align:center;margin-bottom:8px;}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;}
+    .label{font-size:0.75rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
+    input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-family:Rubik,sans-serif;font-size:0.86rem;color:var(--text);outline:none;direction:ltr;width:100%;}
+    input:focus{border-color:rgba(108,99,255,0.5);}
+    input::placeholder{color:var(--muted);}
+    .btn{background:linear-gradient(135deg,#6c63ff,#4f46e5);color:#fff;border:none;border-radius:8px;padding:11px;font-family:Rubik,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;width:100%;transition:opacity 0.2s;}
+    .btn:hover{opacity:0.85;}
+    .btn:disabled{opacity:0.4;cursor:not-allowed;}
+    .btn.green{background:linear-gradient(135deg,#52b788,#2d6a4f);}
+    .status{padding:10px 14px;border-radius:8px;font-size:0.82rem;display:flex;align-items:center;gap:8px;display:none;}
+    .status.show{display:flex;}
+    .status.loading{background:rgba(167,139,250,0.1);color:var(--accent2);}
+    .status.ok{background:rgba(82,183,136,0.1);color:var(--green);}
+    .status.error{background:rgba(255,77,77,0.1);color:var(--red);}
+    .spin{width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;}
     @keyframes spin{to{transform:rotate(360deg);}}
-    .qbar{display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;}
-    .ql{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 9px;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:Rubik,sans-serif;}
+    .divider{border:none;border-top:1px solid var(--border);margin:4px 0;}
+    .qbar{display:flex;gap:5px;flex-wrap:wrap;}
+    .ql{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:0.73rem;color:var(--muted);cursor:pointer;font-family:Rubik,sans-serif;}
     .ql:hover{border-color:var(--accent2);color:var(--accent2);}
-    .ql.cached{border-color:#52b788;color:#52b788;}
-    #content{flex:1;overflow:auto;background:#fff;position:relative;}
-    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);background:#0d0d1a;}
-    .eicon{font-size:2.8rem;opacity:0.12;}
-    .timer{font-size:0.72rem;color:var(--muted);opacity:0.6;}
-
-    /* מודל הגדרות */
-    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:center;justify-content:center;}
-    .modal.show{display:flex;}
-    .mbox{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;width:90%;max-width:420px;display:flex;flex-direction:column;gap:12px;}
-    .mbox h3{font-size:1rem;font-weight:700;color:var(--accent2);}
-    .mbox input{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px 12px;font-family:monospace;font-size:0.8rem;color:var(--text);outline:none;direction:ltr;width:100%;}
-    .mbox button{background:linear-gradient(135deg,#6c63ff,#4f46e5);color:#fff;border:none;border-radius:7px;padding:8px;font-family:Rubik,sans-serif;font-size:0.84rem;font-weight:700;cursor:pointer;}
-    .mclose{background:transparent;border:1px solid var(--border);color:var(--muted);}
+    .browse-section{display:none;}
+    .browse-section.show{display:flex;flex-direction:column;gap:10px;}
+    .hint{font-size:0.72rem;color:var(--muted);text-align:center;}
   </style>
 </head>
 <body>
+<div class="wrap">
 
-<div class="toolbar">
-  <div class="dots"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div></div>
-  <button class="navbtn" onclick="goBack()">&#8249;</button>
-  <button class="navbtn" onclick="goFwd()">&#8250;</button>
-  <button class="navbtn" onclick="reload()">&#8635;</button>
-  <input class="ubar" id="ubar" placeholder="https://example.com"/>
-  <button class="gobtn" id="gobtn" onclick="go()">עבור</button>
-  <button class="navbtn" onclick="showSettings()" title="הגדרות">&#9881;</button>
-</div>
-
-<div class="sb" id="sb"><div class="spin"></div><span id="sbtext"></span></div>
-
-<div class="qbar" id="qbar">
-  <!-- נטען דינמית -->
-</div>
-
-<div id="content">
-  <div class="empty" id="empty">
-    <div class="eicon">&#127759;</div>
-    <div>הכנס כתובת אתר</div>
-    <div class="timer" id="timer"></div>
+  <div>
+    <h1>🎥 Meet Browser</h1>
+    <p class="sub">גלוש דרך Google Meet — הרשת רואה רק Meet</p>
   </div>
-</div>
 
-<!-- מודל הגדרות -->
-<div class="modal" id="modal">
-  <div class="mbox">
-    <h3>&#9881; הגדרות</h3>
-    <div style="font-size:0.78rem;color:var(--muted);">GitHub Token (workflow + contents)</div>
-    <input id="stok" type="password" placeholder="ghp_..."/>
-    <div style="font-size:0.78rem;color:var(--muted);margin-top:4px;">אתרים מהירים (כבר שמורים) — אחד בכל שורה:</div>
-    <textarea id="scache" rows="6" style="background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:8px;font-family:monospace;font-size:0.75rem;color:var(--text);outline:none;direction:ltr;resize:vertical;width:100%;"></textarea>
-    <button onclick="saveSettings()">שמור</button>
-    <button class="mclose" onclick="closeSettings()">סגור</button>
+  <!-- כרטיס הגדרות -->
+  <div class="card">
+    <div class="label">כתובת השרת (Render)</div>
+    <input id="serverUrl" type="text" placeholder="https://xxx.onrender.com" />
+
+    <hr class="divider"/>
+
+    <div class="label">קישור Google Meet שלך</div>
+    <input id="meetUrl" type="text" placeholder="https://meet.google.com/abc-defg-hij"/>
+    <p class="hint">פתח <a href="https://meet.google.com/new" target="_blank" style="color:var(--accent2);">meet.google.com/new</a> ← העתק את הקישור ← הדבק כאן</p>
+
+    <button class="btn green" id="joinBtn" onclick="joinMeet()">🤖 הפעל שרת + הצטרף ל-Meet</button>
   </div>
+
+  <!-- סטטוס -->
+  <div class="status" id="status">
+    <div class="spin"></div>
+    <span id="statusText"></span>
+  </div>
+
+  <!-- גלישה — מופיע אחרי חיבור -->
+  <div class="browse-section" id="browseSection">
+    <div class="card">
+      <div class="label">🌐 הכנס כתובת לגלישה</div>
+      <input id="navUrl" type="text" placeholder="https://youtube.com"/>
+      <button class="btn" onclick="navigate()">עבור ←</button>
+      <div class="qbar">
+        <button class="ql" onclick="go('https://google.com')">Google</button>
+        <button class="ql" onclick="go('https://youtube.com')">YouTube</button>
+        <button class="ql" onclick="go('https://wikipedia.org')">Wikipedia</button>
+        <button class="ql" onclick="go('https://ynet.co.il')">Ynet</button>
+        <button class="ql" onclick="go('https://github.com')">GitHub</button>
+        <button class="ql" onclick="go('https://walla.co.il')">Walla</button>
+      </div>
+    </div>
+    <p class="hint">השרת מגלש — אתה רואה הכל ב-Meet שפתוח אצלך &#128071;</p>
+  </div>
+
 </div>
 
 <script>
-  var OWNER = 'm0544195828';
-  var REPO  = 'browser';
-  var RAW   = 'https://raw.githubusercontent.com/' + OWNER + '/' + REPO + '/main/cache/';
+  // שמור הגדרות
+  var SERVER = localStorage.getItem('meet_server') || '';
+  if (SERVER) document.getElementById('serverUrl').value = SERVER;
 
-  var TOKEN     = localStorage.getItem('gh_token') || '';
-  var QUICK     = JSON.parse(localStorage.getItem('gh_quick') || '[]');
-  var hist = [], cur = -1;
-  var timerInt = null;
+  async function joinMeet() {
+    var server = document.getElementById('serverUrl').value.trim().replace(/\/$/, '');
+    var meet   = document.getElementById('meetUrl').value.trim();
 
-  // טען אתרים מ-sites.json בריפו
-  async function loadSites() {
-    try {
-      var r = await fetch('https://raw.githubusercontent.com/' + OWNER + '/' + REPO + '/main/sites.json?t=' + Date.now());
-      if (r.ok) { QUICK = await r.json(); localStorage.setItem('gh_quick', JSON.stringify(QUICK)); }
-    } catch(e) {}
-    renderQuick();
-  }
+    if (!server) return alert('הכנס כתובת שרת!');
+    if (!meet)   return alert('הכנס קישור Meet!');
 
-  if (!TOKEN) showSettings();
-  loadSites();
+    SERVER = server;
+    localStorage.setItem('meet_server', SERVER);
 
-  // ── Quick links ───────────────────────────────────────────────────────────
-  function renderQuick() {
-    var qbar = document.getElementById('qbar');
-    qbar.innerHTML = '';
-    QUICK.forEach(function(q) {
-      var btn = document.createElement('button');
-      btn.className = 'ql';
-      btn.textContent = q.label;
-      btn.onclick = function() { nav(q.url); };
-      qbar.appendChild(btn);
-    });
-  }
-
-  // ── ניווט ─────────────────────────────────────────────────────────────────
-  function go() {
-    var url = document.getElementById('ubar').value.trim();
-    if (!url) return;
-    if (!url.startsWith('http')) url = 'https://' + url;
-    pushHist(url); load(url);
-  }
-
-  function nav(url) { document.getElementById('ubar').value=url; pushHist(url); load(url); }
-  function pushHist(url) { hist=hist.slice(0,cur+1); hist.push(url); cur=hist.length-1; }
-  function goBack() { if(cur>0){cur--;var u=hist[cur];document.getElementById('ubar').value=u;load(u);} }
-  function goFwd()  { if(cur<hist.length-1){cur++;var u=hist[cur];document.getElementById('ubar').value=u;load(u);} }
-  function reload() { if(hist[cur]) load(hist[cur]); }
-
-  // ── טעינה ─────────────────────────────────────────────────────────────────
-  async function load(url) {
-    if (!TOKEN) { showSettings(); return; }
-
-    setStatus('טוען...', 'loading');
-    document.getElementById('gobtn').disabled = true;
-    document.getElementById('empty').style.display = 'flex';
-    document.getElementById('empty').querySelector('.eicon').textContent = '⏳';
-
-    clearInterval(timerInt);
-    var elapsed = 0;
-    document.getElementById('timer').textContent = '';
-
-    // שלב 1: נסה לטעון מהקאש
-    var reqid = urlToId(url);
-    var cached = await tryCache(reqid);
-    if (cached) {
-      showHtml(cached, url);
-      setStatus('&#10003; ' + url + ' (מהיר)', 'ok');
-      document.getElementById('gobtn').disabled = false;
-      return;
-    }
-
-    // שלב 2: הפעל Action
-    setStatus('מפעיל GitHub Action...', 'loading');
-    timerInt = setInterval(function() {
-      elapsed++;
-      document.getElementById('timer').textContent = elapsed + ' שניות...';
-    }, 1000);
+    document.getElementById('joinBtn').disabled = true;
+    setStatus('השרת מצטרף ל-Meet... (עד 30 שניות)', 'loading');
 
     try {
-      var ar = await fetch(
-        'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/proxy.yml/dispatches',
-        {
-          method: 'POST',
-          headers: { 'Authorization': 'token ' + TOKEN, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ref: 'main', inputs: { url: url, reqid: reqid } })
-        }
-      );
-      if (!ar.ok) throw new Error('Action נכשל קוד ' + ar.status);
+      var r = await fetch(SERVER + '/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: meet })
+      });
+      var d = await r.json();
+      if (!d.success) throw new Error(d.error || 'שגיאה');
 
-      setStatus('GitHub מביא את הדף...', 'loading');
-
-      // המתן לקאש
-      var html = await waitForCache(reqid);
-      clearInterval(timerInt);
-      document.getElementById('timer').textContent = '';
-      showHtml(html, url);
-      setStatus('&#10003; ' + url, 'ok');
+      setStatus('✅ השרת הצטרף! תראה אותו ב-Meet — עכשיו בחר אתר לגלישה', 'ok');
+      document.getElementById('browseSection').classList.add('show');
 
     } catch(e) {
-      clearInterval(timerInt);
-      document.getElementById('timer').textContent = '';
       setStatus('שגיאה: ' + e.message, 'error');
-      document.getElementById('empty').querySelector('.eicon').textContent = '🌐';
-    } finally {
-      document.getElementById('gobtn').disabled = false;
+      document.getElementById('joinBtn').disabled = false;
     }
   }
 
-  function urlToId(url) {
-    // המר URL ל-ID קצר וקבוע
-    var h = 0;
-    for (var i=0; i<url.length; i++) h = Math.imul(31, h) + url.charCodeAt(i) | 0;
-    return Math.abs(h).toString(36);
+  function navigate() {
+    var url = document.getElementById('navUrl').value.trim();
+    if (!url) return;
+    if (!url.startsWith('http')) url = 'https://' + url;
+    go(url);
   }
 
-  async function tryCache(reqid) {
+  async function go(url) {
+    document.getElementById('navUrl').value = url;
+    setStatus('מנווט ל-' + url + '...', 'loading');
     try {
-      var r = await fetch(RAW + reqid + '.html?t=' + Date.now());
-      if (r.ok) {
-        var html = await r.text();
-        if (html.length > 200) return html;
-      }
-    } catch(e) {}
-    return null;
-  }
-
-  async function waitForCache(reqid) {
-    for (var i=0; i<25; i++) {
-      await sleep(3000);
-      var html = await tryCache(reqid);
-      if (html) return html;
-    }
-    throw new Error('פג זמן — נסה שוב');
-  }
-
-  function showHtml(html, url) {
-    document.getElementById('empty').style.display = 'none';
-    var c = document.getElementById('content');
-    c.innerHTML = html;
-
-    // תפוס קליקים
-    c.querySelectorAll('a').forEach(function(a) {
-      a.addEventListener('click', function(e) {
-        e.preventDefault();
-        var href = a.getAttribute('href');
-        if (!href || href.startsWith('#')) return;
-        try {
-          var abs = new URL(href, url).href;
-          document.getElementById('ubar').value = abs;
-          pushHist(abs); load(abs);
-        } catch(ex) {}
+      var r = await fetch(SERVER + '/navigate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
       });
-    });
+      var d = await r.json();
+      setStatus('✅ ' + (d.title || url), 'ok');
+    } catch(e) {
+      setStatus('שגיאה: ' + e.message, 'error');
+    }
   }
-
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   function setStatus(msg, type) {
-    var sb = document.getElementById('sb');
-    document.getElementById('sbtext').innerHTML = msg;
-    sb.className = 'sb show ' + type;
-    if (type !== 'loading') setTimeout(() => sb.classList.remove('show'), 3000);
+    var el = document.getElementById('status');
+    document.getElementById('statusText').textContent = msg;
+    el.className = 'status show ' + type;
+    el.querySelector('.spin').style.display = type === 'loading' ? 'block' : 'none';
   }
 
-  // ── הגדרות ────────────────────────────────────────────────────────────────
-  function showSettings() {
-    document.getElementById('stok').value = TOKEN || '';
-    document.getElementById('scache').value = QUICK.map(function(q){ return q.label + '|' + q.url; }).join('\n');
-    document.getElementById('modal').classList.add('show');
-  }
-
-  function closeSettings() {
-    document.getElementById('modal').classList.remove('show');
-  }
-
-  function saveSettings() {
-    var tok = document.getElementById('stok').value.trim();
-    if (tok) { TOKEN = tok; localStorage.setItem('gh_token', tok); }
-
-    var lines = document.getElementById('scache').value.trim().split('\n').filter(Boolean);
-    QUICK = lines.map(function(l) {
-      var parts = l.split('|');
-      return { label: parts[0] || l, url: parts[1] || l };
-    });
-    localStorage.setItem('gh_quick', JSON.stringify(QUICK));
-    renderQuick();
-    closeSettings();
-  }
-
-  document.getElementById('ubar').addEventListener('keydown', e => { if(e.key==='Enter') go(); });
+  document.getElementById('navUrl').addEventListener('keydown', e => { if(e.key==='Enter') navigate(); });
+  document.getElementById('meetUrl').addEventListener('keydown', e => { if(e.key==='Enter') joinMeet(); });
 </script>
 </body>
 </html>
