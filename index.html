@@ -59,14 +59,12 @@
   <div class="empty" id="empty">
     <div class="eicon">&#127759;</div>
     <div>הכנס כתובת אתר</div>
-    <div style="font-size:0.73rem;opacity:0.4;margin-top:4px;">github.io → Apps Script → אתרים</div>
+    <div style="font-size:0.73rem;opacity:0.4;margin-top:4px;">github.io ← Apps Script ← אתרים</div>
   </div>
 </div>
 
 <script>
-  // ⬇️ שנה לקישור ה-Apps Script שלך
-  var GAS = 'https://script.google.com/macros/s/AKfycbw5BYR0pXF7MUp5GSf54UzpcU8ge58PTkco3IOSQvOLIzUyqQdRGbfXgX13yYUQXYsknw/exec';
-
+  var GAS = 'https://script.google.com/macros/s/AKfycbwG_pqYuxJt8wwhZdKqzK9A5OpZez5rMqpMC281Q2pJw01dBQciGfgAIXzU7MkkogEU1w/exec';
   var hist = [], cur = -1;
 
   function go() {
@@ -77,42 +75,33 @@
   }
 
   function nav(url) { document.getElementById('ubar').value = url; pushHist(url); load(url); }
-  function pushHist(url) { hist = hist.slice(0, cur+1); hist.push(url); cur = hist.length-1; }
-  function goBack() { if (cur>0) { cur--; var u=hist[cur]; document.getElementById('ubar').value=u; load(u); } }
-  function goFwd()  { if (cur<hist.length-1) { cur++; var u=hist[cur]; document.getElementById('ubar').value=u; load(u); } }
-  function reload() { if (hist[cur]) load(hist[cur]); }
+  function pushHist(url) { hist = hist.slice(0,cur+1); hist.push(url); cur = hist.length-1; }
+  function goBack() { if(cur>0){cur--;var u=hist[cur];document.getElementById('ubar').value=u;load(u);} }
+  function goFwd()  { if(cur<hist.length-1){cur++;var u=hist[cur];document.getElementById('ubar').value=u;load(u);} }
+  function reload() { if(hist[cur]) load(hist[cur]); }
 
-  function load(url) {
+  async function load(url) {
     setStatus('טוען...', 'loading');
     document.getElementById('gobtn').disabled = true;
     document.getElementById('empty').style.display = 'none';
 
-    // JSONP — עוקף CORS לגמרי!
-    var cbName = 'cb_' + Date.now();
-    var script = document.createElement('script');
-    var timeout = setTimeout(function() {
-      setStatus('שגיאה: פג זמן', 'error');
-      document.getElementById('gobtn').disabled = false;
-      script.remove();
-      delete window[cbName];
-    }, 15000);
+    try {
+      var r = await fetch(GAS + '?url=' + encodeURIComponent(url), {
+        method: 'GET',
+        mode: 'cors',
+      });
 
-    window[cbName] = function(data) {
-      clearTimeout(timeout);
-      script.remove();
-      delete window[cbName];
+      var text = await r.text();
+      var data;
+      try { data = JSON.parse(text); }
+      catch(e) { throw new Error('תשובה לא תקינה מהשרת'); }
 
-      if (!data.success) {
-        setStatus('שגיאה: ' + (data.error || 'לא ידוע'), 'error');
-        document.getElementById('gobtn').disabled = false;
-        return;
-      }
+      if (!data.success) throw new Error(data.error || 'שגיאה לא ידועה');
 
-      // הצג HTML
+      // הצג HTML ותפוס קליקים
       var c = document.getElementById('content');
       c.innerHTML = data.html;
 
-      // תפוס קליקים על קישורים
       c.querySelectorAll('a').forEach(function(a) {
         a.addEventListener('click', function(e) {
           e.preventDefault();
@@ -121,18 +110,19 @@
           try {
             var abs = new URL(href, url).href;
             document.getElementById('ubar').value = abs;
-            pushHist(abs);
-            load(abs);
+            pushHist(abs); load(abs);
           } catch(ex) {}
         });
       });
 
       setStatus('&#10003; ' + (data.title || url), 'ok');
-      document.getElementById('gobtn').disabled = false;
-    };
 
-    script.src = GAS + '?callback=' + cbName + '&url=' + encodeURIComponent(url);
-    document.head.appendChild(script);
+    } catch(e) {
+      setStatus('שגיאה: ' + e.message, 'error');
+      document.getElementById('empty').style.display = 'flex';
+    } finally {
+      document.getElementById('gobtn').disabled = false;
+    }
   }
 
   function setStatus(msg, type) {
@@ -142,7 +132,7 @@
     if (type !== 'loading') setTimeout(() => sb.classList.remove('show'), 3000);
   }
 
-  document.getElementById('ubar').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  document.getElementById('ubar').addEventListener('keydown', e => { if(e.key==='Enter') go(); });
 </script>
 </body>
 </html>
