@@ -1,8 +1,0 @@
-[
-  { "label": "Wikipedia", "url": "https://wikipedia.org" },
-  { "label": "Hacker News", "url": "https://news.ycombinator.com" },
-  { "label": "GitHub", "url": "https://github.com" },
-  { "label": "Ynet", "url": "https://ynet.co.il" },
-  { "label": "Walla", "url": "https://walla.co.il" },
-  { "label": "Google", "url": "https://google.com" }
-]
