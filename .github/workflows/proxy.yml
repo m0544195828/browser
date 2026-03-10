@@ -1,10 +1,10 @@
-name: Proxy Fetch
+name: Fetch Page
 
 on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'URL to fetch'
+        description: 'URL'
         required: true
       reqid:
         description: 'Request ID'
@@ -18,18 +18,57 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
 
-      - name: Fetch URL
+      - name: Fetch and process page
         run: |
           mkdir -p cache
-          curl -s -L \
+          
+          # מביא את הדף
+          curl -sL \
             -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
-            -H "Accept: text/html,application/xhtml+xml,*/*" \
-            "${{ inputs.url }}" > cache/${{ inputs.reqid }}.html
+            -H "Accept: text/html,*/*" \
+            --max-time 15 \
+            "${{ inputs.url }}" -o /tmp/page.html
+
+          # מעבד עם Python
+          python3 << 'PYEOF'
+          import re, json, sys
+
+          url = "${{ inputs.url }}"
+          reqid = "${{ inputs.reqid }}"
+
+          try:
+            base = re.match(r'^(https?://[^/]+)', url).group(1)
+          except:
+            base = ''
+
+          with open('/tmp/page.html', 'r', errors='ignore') as f:
+            html = f.read()
+
+          # משכתב src ו-href יחסיים לאבסולוטיים
+          def rewrite(m):
+            attr, val = m.group(1), m.group(2)
+            if val.startswith(('http','data:','javascript:','#','mailto:')):
+              return m.group(0)
+            if val.startswith('//'):
+              return f'{attr}="https:{val}"'
+            if val.startswith('/'):
+              return f'{attr}="{base}{val}"'
+            path = re.sub(r'[^/]*$', '', url)
+            return f'{attr}="{path}{val}"'
+
+          html = re.sub(r'((?:href|src|action))="([^"]*)"', rewrite, html, flags=re.IGNORECASE)
+
+          # שומר תוצאה
+          with open(f'cache/{reqid}.html', 'w') as f:
+            f.write(html)
+
+          print(f"Done! Saved cache/{reqid}.html ({len(html)} bytes)")
+          PYEOF
 
       - name: Commit result
         run: |
-          git config user.email "proxy@proxy.com"
+          git config user.email "bot@proxy.com"
           git config user.name "Proxy Bot"
           git add cache/
-          git commit -m "result:${{ inputs.reqid }}"
+          git diff --staged --quiet || git commit -m "cache:${{ inputs.reqid }}"
           git push
