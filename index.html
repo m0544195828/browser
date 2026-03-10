@@ -29,12 +29,9 @@
     .qbar{display:flex;gap:4px;flex-wrap:wrap;padding:6px 10px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;}
     .ql{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 9px;font-size:0.72rem;color:var(--muted);cursor:pointer;font-family:Rubik,sans-serif;}
     .ql:hover{border-color:var(--accent2);color:var(--accent2);}
-    #content{flex:1;overflow:hidden;background:#0d0d1a;position:relative;}
-    #frameWrap{width:100%;height:100%;position:absolute;inset:0;display:none;}
-    iframe{width:100%;height:100%;border:none;display:block;}
-    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);}
+    #content{flex:1;overflow:auto;background:#fff;position:relative;}
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--muted);background:#0d0d1a;}
     .eicon{font-size:2.8rem;opacity:0.12;}
-    .timer{font-size:0.7rem;color:var(--muted);margin-top:4px;}
   </style>
 </head>
 <body>
@@ -62,22 +59,15 @@
   <div class="empty" id="empty">
     <div class="eicon">&#127759;</div>
     <div>הכנס כתובת אתר</div>
-    <div class="timer" id="timer"></div>
+    <div style="font-size:0.73rem;opacity:0.4;margin-top:4px;">github.io → Apps Script → אתרים</div>
   </div>
-  <div id="frameWrap"><iframe id="frame"></iframe></div>
 </div>
 
 <script>
-  var OWNER = 'm0544195828';
-  var REPO  = 'browser';
-  var TOKEN = localStorage.getItem('gh_token') || '';
-  var hist = [], cur = -1;
-  var timerInterval = null;
+  // ⬇️ שנה לקישור ה-Apps Script שלך
+  var GAS = 'https://script.google.com/macros/s/AKfycbxgqSALoDFTVi2qx-tR0zYkxb0awMETGIJxLX57g2xBBLTDkpztgaO7-M2dhj47bxjR/exec';
 
-  if (!TOKEN) {
-    var t = prompt('הכנס GitHub Token (gist + workflow):');
-    if (t) { TOKEN = t.trim(); localStorage.setItem('gh_token', TOKEN); }
-  }
+  var hist = [], cur = -1;
 
   function go() {
     var url = document.getElementById('ubar').value.trim();
@@ -92,83 +82,58 @@
   function goFwd()  { if (cur<hist.length-1) { cur++; var u=hist[cur]; document.getElementById('ubar').value=u; load(u); } }
   function reload() { if (hist[cur]) load(hist[cur]); }
 
-  async function load(url) {
-    if (!TOKEN) { alert('חסר Token!'); return; }
-
-    // צור ID ייחודי לבקשה
-    var reqid = Date.now().toString(36);
-
-    setStatus('מפעיל GitHub Action...', 'loading');
+  function load(url) {
+    setStatus('טוען...', 'loading');
     document.getElementById('gobtn').disabled = true;
-    document.getElementById('frameWrap').style.display = 'none';
-    document.getElementById('empty').style.display = 'flex';
+    document.getElementById('empty').style.display = 'none';
 
-    // התחל טיימר
-    var elapsed = 0;
-    clearInterval(timerInterval);
-    timerInterval = setInterval(function() {
-      elapsed++;
-      document.getElementById('timer').textContent = elapsed + ' שניות...';
-    }, 1000);
-
-    try {
-      // הפעל Action
-      var ar = await fetch(
-        'https://api.github.com/repos/' + OWNER + '/' + REPO + '/actions/workflows/proxy.yml/dispatches',
-        {
-          method: 'POST',
-          headers: { 'Authorization': 'token ' + TOKEN, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ref: 'main', inputs: { url: url, reqid: reqid } })
-        }
-      );
-      if (!ar.ok) throw new Error('Action נכשל (קוד ' + ar.status + ')');
-
-      // המתן לקובץ ב-raw.githubusercontent.com
-      setStatus('GitHub מביא את הדף...', 'loading');
-      var html = await waitForFile(reqid, url);
-
-      // הצג
-      clearInterval(timerInterval);
-      document.getElementById('timer').textContent = '';
-      document.getElementById('empty').style.display = 'none';
-      document.getElementById('frameWrap').style.display = 'block';
-      document.getElementById('frame').srcdoc = html;
-      setStatus('&#10003; ' + url, 'ok');
-
-    } catch(e) {
-      clearInterval(timerInterval);
-      document.getElementById('timer').textContent = '';
-      setStatus('שגיאה: ' + e.message, 'error');
-    } finally {
+    // JSONP — עוקף CORS לגמרי!
+    var cbName = 'cb_' + Date.now();
+    var script = document.createElement('script');
+    var timeout = setTimeout(function() {
+      setStatus('שגיאה: פג זמן', 'error');
       document.getElementById('gobtn').disabled = false;
-    }
+      script.remove();
+      delete window[cbName];
+    }, 15000);
+
+    window[cbName] = function(data) {
+      clearTimeout(timeout);
+      script.remove();
+      delete window[cbName];
+
+      if (!data.success) {
+        setStatus('שגיאה: ' + (data.error || 'לא ידוע'), 'error');
+        document.getElementById('gobtn').disabled = false;
+        return;
+      }
+
+      // הצג HTML
+      var c = document.getElementById('content');
+      c.innerHTML = data.html;
+
+      // תפוס קליקים על קישורים
+      c.querySelectorAll('a').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          var href = a.getAttribute('href');
+          if (!href || href.startsWith('#')) return;
+          try {
+            var abs = new URL(href, url).href;
+            document.getElementById('ubar').value = abs;
+            pushHist(abs);
+            load(abs);
+          } catch(ex) {}
+        });
+      });
+
+      setStatus('&#10003; ' + (data.title || url), 'ok');
+      document.getElementById('gobtn').disabled = false;
+    };
+
+    script.src = GAS + '?callback=' + cbName + '&url=' + encodeURIComponent(url);
+    document.head.appendChild(script);
   }
-
-  async function waitForFile(reqid, url) {
-    var rawUrl = 'https://raw.githubusercontent.com/' + OWNER + '/' + REPO + '/main/cache/' + reqid + '.html';
-
-    for (var i = 0; i < 40; i++) {
-      await sleep(3000);
-      try {
-        var r = await fetch(rawUrl + '?t=' + Date.now());
-        if (r.ok) {
-          var html = await r.text();
-          if (html.length > 100) {
-            // משכתב קישורים יחסיים
-            var base = new URL(url).origin;
-            html = html.replace(/(href|src)="(?!http|\/\/|#|data:|javascript:|mailto:)([^"]*)"/gi, function(m, attr, path) {
-              var abs = path.startsWith('/') ? base + path : url.replace(/[^\/]*$/, '') + path;
-              return attr + '="' + abs + '"';
-            });
-            return html;
-          }
-        }
-      } catch(e) {}
-    }
-    throw new Error('פג זמן — נסה שוב');
-  }
-
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   function setStatus(msg, type) {
     var sb = document.getElementById('sb');
