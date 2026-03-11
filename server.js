@@ -1,6 +1,6 @@
 const express = require('express');
-const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
+const { execSync, spawn } = require('child_process');
+const puppeteer = require('puppeteer');
 const path = require('path');
 
 const app = express();
@@ -17,94 +17,84 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-let botBrowser = null;
+let browser = null;
 let botPage = null;
-let browserPage = null; // הדפדפן שמגלש
-let meetCode = null;
+let browserPage = null;
 let status = 'idle';
 
-// ── פותח דפדפן ───────────────────────────────────────────────────────────────
-async function launchBrowser() {
-  if (botBrowser && botBrowser.isConnected()) return;
+function startXvfb() {
+  try {
+    execSync('pkill Xvfb || true');
+    const xvfb = spawn('Xvfb', [':99', '-screen', '0', '1280x720x24'], {
+      detached: true, stdio: 'ignore'
+    });
+    xvfb.unref();
+    process.env.DISPLAY = ':99';
+    execSync('sleep 2');
+    console.log('Xvfb started');
+  } catch(e) {
+    console.log('Xvfb error:', e.message);
+  }
+}
 
-  botBrowser = await puppeteer.launch({
+async function launchBrowser() {
+  if (browser && browser.isConnected()) return;
+  startXvfb();
+  browser = await puppeteer.launch({
+    headless: false,
+    executablePath: '/usr/bin/google-chrome-stable',
     args: [
-      ...chromium.args,
-      '--use-fake-ui-for-media-stream',  // מאפשר מצלמה/מיק בלי popup
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--display=:99',
+      '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
-      '--auto-select-desktop-capture-source=Entire screen',
       '--enable-usermedia-screen-capturing',
+      '--auto-select-desktop-capture-source=Entire screen',
       '--allow-http-screen-capture',
+      '--disable-infobars',
     ],
     defaultViewport: { width: 1280, height: 720 },
-    executablePath: await chromium.executablePath(),
-    headless: false, // חייב false כדי לשתף מסך
   });
 }
 
-// ── מצטרף ל-Meet ─────────────────────────────────────────────────────────────
 app.post('/join', async (req, res) => {
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'Missing meet code' });
-
   try {
-    meetCode = code;
     status = 'joining';
     await launchBrowser();
-
-    // פתח טאב לדפדפן הגלישה
-    browserPage = await botBrowser.newPage();
+    browserPage = await browser.newPage();
     await browserPage.setViewport({ width: 1280, height: 720 });
     await browserPage.goto('https://google.com');
-
-    // פתח טאב ל-Meet
-    botPage = await botBrowser.newPage();
+    botPage = await browser.newPage();
     await botPage.setViewport({ width: 1280, height: 720 });
-
     const meetUrl = code.startsWith('http') ? code : `https://meet.google.com/${code}`;
     await botPage.goto(meetUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
-    // המתן לטעינת Meet
+    await new Promise(r => setTimeout(r, 4000));
+    await botPage.evaluate(() => {
+      const btns = [...document.querySelectorAll('button')];
+      const join = btns.find(b =>
+        b.innerText.includes('Join') ||
+        b.innerText.includes('הצטרף') ||
+        b.innerText.includes('Ask to join')
+      );
+      if (join) join.click();
+    });
     await new Promise(r => setTimeout(r, 3000));
-
-    // נסה ללחוץ "הצטרף"
-    try {
-      await botPage.evaluate(() => {
-        const btns = [...document.querySelectorAll('button')];
-        const join = btns.find(b => b.innerText.includes('Join') || b.innerText.includes('הצטרף') || b.innerText.includes('Ask'));
-        if (join) join.click();
-      });
-    } catch(e) {}
-
-    await new Promise(r => setTimeout(r, 3000));
-
-    // שתף את טאב הגלישה
-    try {
-      await botPage.evaluate(() => {
-        const btns = [...document.querySelectorAll('button, [data-tooltip]')];
-        const share = btns.find(b =>
-          (b.innerText || b.getAttribute('data-tooltip') || '').toLowerCase().includes('present') ||
-          (b.innerText || b.getAttribute('data-tooltip') || '').includes('שתף')
-        );
-        if (share) share.click();
-      });
-    } catch(e) {}
-
     status = 'joined';
-    res.json({ success: true, status });
-
-  } catch(err) {
+    res.json({ success: true });
+  } catch(e) {
     status = 'error';
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: e.message });
   }
 });
 
-// ── ניווט בדפדפן ─────────────────────────────────────────────────────────────
 app.post('/navigate', async (req, res) => {
   const { url } = req.body;
   if (!browserPage) return res.status(400).json({ error: 'Not connected' });
-
   try {
+    await browserPage.bringToFront();
     await browserPage.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
     const title = await browserPage.title();
     res.json({ success: true, url: browserPage.url(), title });
@@ -113,16 +103,12 @@ app.post('/navigate', async (req, res) => {
   }
 });
 
-// ── סטטוס ────────────────────────────────────────────────────────────────────
-app.get('/status', (req, res) => {
-  res.json({ status, meetCode });
-});
+app.get('/status', (req, res) => res.json({ status }));
 
-// ── סגור ─────────────────────────────────────────────────────────────────────
 app.post('/close', async (req, res) => {
   try {
-    if (botBrowser) await botBrowser.close();
-    botBrowser = null; botPage = null; browserPage = null;
+    if (browser) await browser.close();
+    browser = null; botPage = null; browserPage = null;
     status = 'idle';
     res.json({ success: true });
   } catch(e) {
